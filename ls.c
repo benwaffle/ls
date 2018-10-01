@@ -15,6 +15,7 @@ int main(int argc, char *argv[])
     bool multi_col = isatty(STDOUT_FILENO);
     bool file_type_char = false;
 
+
     while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
         switch (ch) {
             case 'A':
