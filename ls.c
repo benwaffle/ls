@@ -9,6 +9,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <err.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
 
 typedef enum {
     NORMAL,
@@ -21,6 +24,25 @@ typedef struct {
     bool recurse;
 } options;
 
+void print_long(FTSENT *ent)
+{
+    char mode[12]; // 11 chars + null, according to man page
+    struct passwd *user;
+    struct group *group;
+
+    strmode(ent->fts_statp->st_mode, mode);
+    user = getpwuid(ent->fts_statp->st_uid);
+    group = getgrgid(ent->fts_statp->st_gid);
+
+    printf("%s%ld %s %s %ld %s\n",
+            mode,
+            ent->fts_statp->st_nlink,
+            user->pw_name,
+            group->gr_name,
+            ent->fts_statp->st_size,
+            ent->fts_name);
+}
+
 void ls(char *files[], int files_len, options *opt)
 {
     FTS *fts = fts_open(files, 0, NULL);
@@ -32,7 +54,10 @@ void ls(char *files[], int files_len, options *opt)
             if (files_len > 1 || opt->recurse)
                 printf("%s:\n", cur->fts_path);
             for (FTSENT *ent = fts_children(fts, 0); ent != NULL; ent = ent->fts_link) {
-                printf("%s\n", ent->fts_accpath);
+                if (opt->long_mode)
+                    print_long(ent);
+                else
+                    printf("%s\n", ent->fts_name);
             }
             printf("\n"); // TODO: don't print for last entry
             if (!opt->recurse)
