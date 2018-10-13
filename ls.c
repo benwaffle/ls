@@ -55,6 +55,12 @@ void ls(char *files[], int files_len, options *opt)
         err(1, "fts_open %s", files[0]);
 
     for (FTSENT *cur = fts_read(fts); cur != NULL; cur = fts_read(fts)) {
+        // ls -R does not show dotfiles
+        if (cur->fts_name[0] == '.' && opt->filter == NORMAL && cur->fts_level > 0) {
+            fts_set(fts, cur, FTS_SKIP);
+            continue;
+        }
+
         if (cur->fts_info == FTS_D) {
             if (files_len > 1 || opt->recurse)
                 printf("%s:\n", cur->fts_path);
