@@ -16,7 +16,12 @@ typedef enum {
     ALL_EXCEPT_DOT
 } list_filter;
 
-void ls(char *files[], bool recurse)
+typedef struct {
+    bool long_mode;
+    bool recurse;
+} options;
+
+void ls(char *files[], int files_len, options *opt)
 {
     FTS *fts = fts_open(files, 0, NULL);
     if (fts == NULL)
@@ -24,12 +29,13 @@ void ls(char *files[], bool recurse)
 
     for (FTSENT *cur = fts_read(fts); cur != NULL; cur = fts_read(fts)) {
         if (cur->fts_info == FTS_D) {
-            printf("%s:\n", cur->fts_path);
+            if (files_len > 1 || opt->recurse)
+                printf("%s:\n", cur->fts_path);
             for (FTSENT *ent = fts_children(fts, 0); ent != NULL; ent = ent->fts_link) {
                 printf("%s\n", ent->fts_accpath);
             }
-            printf("\n");
-            if (!recurse)
+            printf("\n"); // TODO: don't print for last entry
+            if (!opt->recurse)
                 fts_set(fts, cur, FTS_SKIP);
         }
     }
@@ -41,10 +47,14 @@ void ls(char *files[], bool recurse)
 int main(int argc, char *argv[])
 {
     int ch;
+    options opt;
     list_filter filter = getuid() == 0 ? ALL_EXCEPT_DOT : NORMAL;
     bool multi_col = isatty(STDOUT_FILENO);
-    bool file_type_char = false;
-    bool recurse = false;
+
+    opt = (options){
+        .recurse = false,
+        .long_mode = false
+    };
 
     while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
         switch (ch) {
@@ -57,16 +67,15 @@ int main(int argc, char *argv[])
             case 'C':
                 multi_col = true;
                 break;
-            case 'F':
-                file_type_char = true;
+            case 'l':
+                opt.long_mode = true;
                 break;
             case 'R':
-                recurse = true;
+                opt.recurse = true;
                 break;
         }
     }
 
-    (void)file_type_char;
     (void)multi_col;
     (void)filter;
 
@@ -74,9 +83,13 @@ int main(int argc, char *argv[])
     argv += optind;
 
     char **files = argv;
+    int files_len = argc;
 
-    if (*argv == NULL)
+    // ls, without args, behaves as if you ran `ls .'
+    if (*argv == NULL) {
         files = (char*[]){".", NULL};
+        files_len = 1;
+    }
 
-    ls(files, recurse);
+    ls(files, files_len, &opt);
 }
