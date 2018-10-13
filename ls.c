@@ -22,6 +22,7 @@ typedef enum {
 typedef struct {
     bool long_mode;
     bool recurse;
+    list_filter filter;
 } options;
 
 void print_long(FTSENT *ent)
@@ -45,7 +46,11 @@ void print_long(FTSENT *ent)
 
 void ls(char *files[], int files_len, options *opt)
 {
-    FTS *fts = fts_open(files, 0, NULL);
+    int fts_flags = FTS_PHYSICAL;
+    if (opt->filter == ALL)
+        fts_flags |= FTS_SEEDOT;
+
+    FTS *fts = fts_open(files, fts_flags, NULL);
     if (fts == NULL)
         err(1, "fts_open %s", files[0]);
 
@@ -54,6 +59,9 @@ void ls(char *files[], int files_len, options *opt)
             if (files_len > 1 || opt->recurse)
                 printf("%s:\n", cur->fts_path);
             for (FTSENT *ent = fts_children(fts, 0); ent != NULL; ent = ent->fts_link) {
+                if (ent->fts_name[0] == '.' && opt->filter == NORMAL)
+                    continue;
+
                 if (opt->long_mode)
                     print_long(ent);
                 else
@@ -79,15 +87,17 @@ int main(int argc, char *argv[])
     opt = (options){
         .recurse = false,
         .long_mode = false
+        .long_mode = false,
+        .filter = (getuid() == 0 ? ALL_EXCEPT_DOT : NORMAL)
     };
 
     while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
         switch (ch) {
             case 'A':
-                filter = ALL_EXCEPT_DOT;
+                opt.filter = ALL_EXCEPT_DOT;
                 break;
             case 'a':
-                filter = ALL;
+                opt.filter = ALL;
                 break;
             case 'C':
                 multi_col = true;
@@ -102,7 +112,6 @@ int main(int argc, char *argv[])
     }
 
     (void)multi_col;
-    (void)filter;
 
     argc -= optind;
     argv += optind;
