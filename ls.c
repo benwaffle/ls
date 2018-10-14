@@ -78,6 +78,11 @@ void print(FTSENT *ent)
     struct tm *time;
     struct stat *st = ent->fts_statp;
 
+    if (opt.print_inode) {
+        // cast to potentially larger size for compatibility with more platforms
+        printf("%llu ", (long long unsigned)st->st_ino);
+    }
+
     if (opt.print_blocks) {
         long long block_bytes = st->st_blocks * 512;
         if (opt.humanize) {
@@ -88,11 +93,6 @@ void print(FTSENT *ent)
             printf("%s ", buf);
         } else
             printf("%lld ", (long long)ceil(block_bytes / (double)opt.blocksize));
-    }
-
-    if (opt.print_inode) {
-        // cast to potentially larger size for compatibility with more platforms
-        printf("%llu ", (long long unsigned)st->st_ino);
     }
 
     if (opt.long_mode) {
