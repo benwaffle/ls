@@ -48,6 +48,7 @@ typedef struct {
     bool print_inode;
     bool print_blocks;
     long blocksize;
+    bool blocks_kb;
 } options;
 
 options opt;
@@ -130,7 +131,6 @@ void print(FTSENT *ent)
         else if (S_ISFIFO(st->st_mode)) putchar('|');
     }
 
-
     if (opt.long_mode) {
         if (ent->fts_info == FTS_SL || ent->fts_info == FTS_SLNONE) {
             char path[PATH_MAX] = {0};
@@ -146,8 +146,6 @@ void print(FTSENT *ent)
 
     printf("\n");
 }
-
-
 
 int cmp_alpha(const FTSENT **a, const FTSENT **b)
 {
@@ -260,7 +258,8 @@ int main(int argc, char *argv[])
         .file_type_char = false,
         .print_inode = false,
         .print_blocks = false,
-        .blocksize = 512
+        .blocksize = 512,
+        .blocks_kb = false
     };
 
     while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
@@ -285,6 +284,9 @@ int main(int argc, char *argv[])
                 break;
             case 'i':
                 opt.print_inode = true;
+                break;
+            case 'k':
+                opt.blocks_kb = true;
                 break;
             case 'l':
                 opt.long_mode = true;
@@ -329,6 +331,9 @@ int main(int argc, char *argv[])
 
     int ignore;
     (void)getbsize(&ignore, &opt.blocksize);
+
+    if (opt.blocks_kb)
+        opt.blocksize = 1024;
 
     ls(files, files_len);
 }
