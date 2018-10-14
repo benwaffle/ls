@@ -41,6 +41,7 @@ typedef struct {
     bool sort_reverse;
     time_category time;
     bool numerical_ids;
+    bool file_type_char;
 } options;
 
 const char *months[] = {
@@ -97,6 +98,15 @@ void print(FTSENT *ent, options *opt)
     }
 
     printf("%s", ent->fts_name);
+
+    if (opt->file_type_char) {
+        if (S_ISDIR(st->st_mode)) printf("/");
+        else if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) printf("*");
+        else if (S_ISLNK(st->st_mode)) printf("@");
+        else if (S_ISWHT(st->st_mode)) printf("%%");
+        else if (S_ISSOCK(st->st_mode)) printf("=");
+        else if (S_ISFIFO(st->st_mode)) printf("|");
+    }
 
     printf("\n");
 }
@@ -180,7 +190,8 @@ int main(int argc, char *argv[])
         .sort = ALPHABETICAL,
         .sort_reverse = false,
         .time = LAST_MODIFIED,
-        .numerical_ids = false
+        .numerical_ids = false,
+        .file_type_char = false
     };
 
     while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
@@ -191,11 +202,14 @@ int main(int argc, char *argv[])
             case 'a':
                 opt.filter = ALL;
                 break;
+            case 'C':
+                multi_col = true;
+                break;
             case 'c':
                 opt.time = STATUS_CHANGED;
                 break;
-            case 'C':
-                multi_col = true;
+            case 'F':
+                opt.file_type_char = true;
                 break;
             case 'f':
                 opt.sort = NOT_SORTED;
