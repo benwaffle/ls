@@ -23,25 +23,31 @@ typedef struct {
     bool long_mode;
     bool recurse;
     list_filter filter;
+    bool numerical_ids;
 } options;
 
-void print_long(FTSENT *ent)
+void print_long(FTSENT *ent, options *opt)
 {
     char mode[12]; // 11 chars + null, according to man page
     struct passwd *user;
     struct group *group;
 
     strmode(ent->fts_statp->st_mode, mode);
-    user = getpwuid(ent->fts_statp->st_uid);
-    group = getgrgid(ent->fts_statp->st_gid);
 
-    printf("%s%ld %s %s %ld %s\n",
-            mode,
-            ent->fts_statp->st_nlink,
-            user->pw_name,
-            group->gr_name,
-            ent->fts_statp->st_size,
-            ent->fts_name);
+    printf("%s%d ", mode, ent->fts_statp->st_nlink);
+
+    if (!opt->numerical_ids && (user = getpwuid(ent->fts_statp->st_uid)) != NULL)
+        printf("%s ", user->pw_name);
+    else
+        printf("%d ", ent->fts_statp->st_uid);
+
+    if (!opt->numerical_ids && (group = getgrgid(ent->fts_statp->st_gid)) != NULL)
+        printf("%s ", group->gr_name);
+    else
+        printf("%d ", ent->fts_statp->st_gid);
+
+    printf("%lld %s\n", ent->fts_statp->st_size, ent->fts_name);
+}
 }
 
 void ls(char *files[], int files_len, options *opt)
@@ -64,12 +70,13 @@ void ls(char *files[], int files_len, options *opt)
         if (cur->fts_info == FTS_D) {
             if (files_len > 1 || opt->recurse)
                 printf("%s:\n", cur->fts_path);
+
             for (FTSENT *ent = fts_children(fts, 0); ent != NULL; ent = ent->fts_link) {
                 if (ent->fts_name[0] == '.' && opt->filter == NORMAL)
                     continue;
 
                 if (opt->long_mode)
-                    print_long(ent);
+                    print_long(ent, opt);
                 else
                     printf("%s\n", ent->fts_name);
             }
@@ -95,6 +102,7 @@ int main(int argc, char *argv[])
         .long_mode = false
         .long_mode = false,
         .filter = (getuid() == 0 ? ALL_EXCEPT_DOT : NORMAL)
+        .numerical_ids = false
     };
 
     while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
@@ -110,6 +118,9 @@ int main(int argc, char *argv[])
                 break;
             case 'l':
                 opt.long_mode = true;
+                break;
+            case 'n':
+                opt.numerical_ids = true;
                 break;
             case 'R':
                 opt.recurse = true;
