@@ -42,6 +42,7 @@ typedef struct {
     time_category time;
     bool numerical_ids;
     bool file_type_char;
+    bool print_inode;
 } options;
 
 options opt;
@@ -68,6 +69,10 @@ void print(FTSENT *ent)
     struct group *group;
     struct tm *time;
     struct stat *st = ent->fts_statp;
+
+    if (opt.print_inode) {
+        printf("%llu ", st->st_ino);
+    }
 
     if (opt.long_mode) {
         strmode(st->st_mode, mode);
@@ -234,14 +239,15 @@ int main(int argc, char *argv[])
     bool multi_col = isatty(STDOUT_FILENO);
 
     opt = (options){
-        .recurse = false,
         .long_mode = false,
+        .recurse = false,
         .filter = (getuid() == 0 ? ALL_EXCEPT_DOT : NORMAL),
         .sort = ALPHABETICAL,
         .sort_reverse = false,
         .time = LAST_MODIFIED,
         .numerical_ids = false,
-        .file_type_char = false
+        .file_type_char = false,
+        .print_inode = false
     };
 
     while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
@@ -263,6 +269,9 @@ int main(int argc, char *argv[])
                 break;
             case 'f':
                 opt.sort = NOT_SORTED;
+                break;
+            case 'i':
+                opt.print_inode = true;
                 break;
             case 'l':
                 opt.long_mode = true;
