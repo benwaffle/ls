@@ -318,6 +318,7 @@ int main(int argc, char *argv[])
                 break;
             case 'n':
                 opt.numerical_ids = true;
+                opt.long_mode = true;
                 break;
             case 'q':
                 opt.hide_nonprintable = true;
