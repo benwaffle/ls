@@ -99,7 +99,11 @@ void print(FTSENT *ent)
         printf("%s %2d %02d:%02d ", months[time->tm_mon], time->tm_mday, time->tm_hour, time->tm_min);
     }
 
-    printf("%s", ent->fts_name);
+    for (char *c = ent->fts_name; *c; ++c)
+        if (isprint((int)*c))
+            putchar(*c);
+        else
+            putchar('?');
 
     if (opt.file_type_char) {
         if (S_ISDIR(st->st_mode)) printf("/");
