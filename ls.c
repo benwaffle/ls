@@ -337,6 +337,9 @@ int main(int argc, char *argv[])
             case 'u':
                 opt.time = LAST_ACCESSED;
                 break;
+            case 'w':
+                opt.hide_nonprintable = false;
+                break;
         }
     }
 
