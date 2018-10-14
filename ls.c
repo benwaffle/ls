@@ -106,12 +106,12 @@ void print(FTSENT *ent)
             putchar('?');
 
     if (opt.file_type_char) {
-        if (S_ISDIR(st->st_mode)) printf("/");
-        else if (S_ISLNK(st->st_mode)) printf("@");
-        else if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) printf("*");
-        else if (S_ISWHT(st->st_mode)) printf("%%");
-        else if (S_ISSOCK(st->st_mode)) printf("=");
-        else if (S_ISFIFO(st->st_mode)) printf("|");
+        if (S_ISDIR(st->st_mode)) putchar('/');
+        else if (S_ISLNK(st->st_mode)) putchar('@');
+        else if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) putchar('*');
+        else if (S_ISWHT(st->st_mode)) putchar('%');
+        else if (S_ISSOCK(st->st_mode)) putchar('=');
+        else if (S_ISFIFO(st->st_mode)) putchar('|');
     }
 
 
