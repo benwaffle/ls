@@ -135,7 +135,7 @@ int cmp_time(const FTSENT **a, const FTSENT **b)
         bt = (*b)->fts_statp->st_mtime;
     }
 
-    if (at < bt) return -1;
+    if (at > bt) return -1;
     if (at == bt) return 0;
     return 1;
 }
@@ -260,6 +260,7 @@ int main(int argc, char *argv[])
                 opt.sort = SIZE;
                 break;
             case 't':
+                opt.sort = TIME;
                 opt.time = LAST_MODIFIED;
                 break;
             case 'u':
