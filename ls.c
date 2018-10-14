@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <ctype.h>
+#include <limits.h>
 #include <string.h>
 #include <dirent.h>
 #include <unistd.h>
@@ -13,6 +15,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
+#include <math.h>
 
 typedef enum {
     NORMAL,
@@ -43,6 +46,8 @@ typedef struct {
     bool numerical_ids;
     bool file_type_char;
     bool print_inode;
+    bool print_blocks;
+    long blocksize;
 } options;
 
 options opt;
@@ -70,8 +75,13 @@ void print(FTSENT *ent)
     struct tm *time;
     struct stat *st = ent->fts_statp;
 
+    if (opt.print_blocks) {
+        printf("%lld ", (long long)ceil((st->st_blocks * 512) / (double)opt.blocksize));
+    }
+
     if (opt.print_inode) {
-        printf("%llu ", st->st_ino);
+        // cast to potentially larger size for compatibility with more platforms
+        printf("%llu ", (long long unsigned)st->st_ino);
     }
 
     if (opt.long_mode) {
@@ -99,7 +109,8 @@ void print(FTSENT *ent)
         if (S_ISCHR(st->st_mode) || S_ISBLK(st->st_mode))
             printf("%d, %d ", major(st->st_rdev), minor(st->st_rdev));
         else
-            printf("%lld ", st->st_size);
+            // cast to potentially larger size for compatibility with more platforms
+            printf("%lld ", (long long)st->st_size);
 
         printf("%s %2d %02d:%02d ", months[time->tm_mon], time->tm_mday, time->tm_hour, time->tm_min);
     }
@@ -247,7 +258,9 @@ int main(int argc, char *argv[])
         .time = LAST_MODIFIED,
         .numerical_ids = false,
         .file_type_char = false,
-        .print_inode = false
+        .print_inode = false,
+        .print_blocks = false,
+        .blocksize = 512
     };
 
     while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
@@ -288,6 +301,9 @@ int main(int argc, char *argv[])
             case 'S':
                 opt.sort = SIZE;
                 break;
+            case 's':
+                opt.print_blocks = true;
+                break;
             case 't':
                 opt.sort = TIME;
                 break;
@@ -310,6 +326,9 @@ int main(int argc, char *argv[])
         files = (char*[]){".", NULL};
         files_len = 1;
     }
+
+    int ignore;
+    (void)getbsize(&ignore, &opt.blocksize);
 
     ls(files, files_len);
 }
