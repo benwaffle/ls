@@ -19,10 +19,26 @@ typedef enum {
     ALL_EXCEPT_DOT
 } list_filter;
 
+typedef enum {
+    STATUS_CHANGED,
+    LAST_MODIFIED,
+    LAST_ACCESSED
+} time_category;
+
+typedef enum {
+    NOT_SORTED,
+    SIZE,
+    TIME,
+    ALPHABETICAL
+} sort_field;
+
 typedef struct {
     bool long_mode;
     bool recurse;
     list_filter filter;
+    sort_field sort;
+    bool sort_reverse;
+    time_category time;
     bool numerical_ids;
 } options;
 
@@ -48,6 +64,22 @@ void print_long(FTSENT *ent, options *opt)
 
     printf("%lld %s\n", ent->fts_statp->st_size, ent->fts_name);
 }
+
+int sort_alpha(const FTSENT **a, const FTSENT **b)
+{
+    return strcmp((*a)->fts_name, (*b)->fts_name);
+}
+
+int sort_size(const FTSENT **a, const FTSENT **b)
+{
+    off_t asz, bsz;
+
+    asz = (*a)->fts_statp->st_size;
+    bsz = (*b)->fts_statp->st_size;
+
+    if (asz > bsz) return -1;
+    if (asz == bsz) return 0;
+    return 1;
 }
 
 void ls(char *files[], int files_len, options *opt)
@@ -56,7 +88,18 @@ void ls(char *files[], int files_len, options *opt)
     if (opt->filter == ALL)
         fts_flags |= FTS_SEEDOT;
 
-    FTS *fts = fts_open(files, fts_flags, NULL);
+    typedef int compar(const FTSENT **, const FTSENT **);
+
+    compar *cmp = NULL;
+
+    if (opt->sort == SIZE)
+        cmp = sort_size;
+    /*else if (opt->sort == TIME) {
+        cmp = sort_time;
+    }*/ else if (opt->sort == ALPHABETICAL)
+        cmp = sort_alpha;
+
+    FTS *fts = fts_open(files, fts_flags, cmp);
     if (fts == NULL)
         err(1, "fts_open %s", files[0]);
 
@@ -85,6 +128,7 @@ void ls(char *files[], int files_len, options *opt)
                 fts_set(fts, cur, FTS_SKIP);
         }
     }
+
     if (errno != 0)
         err(1, "fts_read");
     fts_close(fts);
@@ -94,14 +138,15 @@ int main(int argc, char *argv[])
 {
     int ch;
     options opt;
-    list_filter filter = getuid() == 0 ? ALL_EXCEPT_DOT : NORMAL;
     bool multi_col = isatty(STDOUT_FILENO);
 
     opt = (options){
         .recurse = false,
-        .long_mode = false
         .long_mode = false,
-        .filter = (getuid() == 0 ? ALL_EXCEPT_DOT : NORMAL)
+        .filter = (getuid() == 0 ? ALL_EXCEPT_DOT : NORMAL),
+        .sort = ALPHABETICAL,
+        .sort_reverse = false,
+        .time = LAST_MODIFIED,
         .numerical_ids = false
     };
 
@@ -113,8 +158,14 @@ int main(int argc, char *argv[])
             case 'a':
                 opt.filter = ALL;
                 break;
+            case 'c':
+                opt.time = STATUS_CHANGED;
+                break;
             case 'C':
                 multi_col = true;
+                break;
+            case 'f':
+                opt.sort = NOT_SORTED;
                 break;
             case 'l':
                 opt.long_mode = true;
@@ -124,6 +175,18 @@ int main(int argc, char *argv[])
                 break;
             case 'R':
                 opt.recurse = true;
+                break;
+            case 'r':
+                opt.sort_reverse = true;
+                break;
+            case 'S':
+                opt.sort = SIZE;
+                break;
+            case 't':
+                opt.time = LAST_MODIFIED;
+                break;
+            case 'u':
+                opt.time = LAST_ACCESSED;
                 break;
         }
     }
