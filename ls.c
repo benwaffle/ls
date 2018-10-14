@@ -103,11 +103,25 @@ void print(FTSENT *ent)
 
     if (opt.file_type_char) {
         if (S_ISDIR(st->st_mode)) printf("/");
-        else if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) printf("*");
         else if (S_ISLNK(st->st_mode)) printf("@");
+        else if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) printf("*");
         else if (S_ISWHT(st->st_mode)) printf("%%");
         else if (S_ISSOCK(st->st_mode)) printf("=");
         else if (S_ISFIFO(st->st_mode)) printf("|");
+    }
+
+
+    if (opt.long_mode) {
+        if (ent->fts_info == FTS_SL || ent->fts_info == FTS_SLNONE) {
+            char path[PATH_MAX] = {0};
+            snprintf(path, sizeof path, "%s/%s", ent->fts_path, ent->fts_accpath);
+
+            char buf[PATH_MAX] = {0};
+            if (readlink(path, buf, sizeof buf) == -1) {
+                err(1, "readlink(%s)", path);
+            }
+            printf(" -> %s", buf);
+        }
     }
 
     printf("\n");
