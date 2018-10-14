@@ -58,7 +58,7 @@ const char *months[] = {
     "Dec"
 };
 
-void print_long(FTSENT *ent, options *opt)
+void print(FTSENT *ent, options *opt)
 {
     char mode[12]; // 11 chars + null, according to man page
     struct passwd *user;
@@ -66,35 +66,39 @@ void print_long(FTSENT *ent, options *opt)
     struct tm *time;
     struct stat *st = ent->fts_statp;
 
-    strmode(st->st_mode, mode);
+    if (opt->long_mode) {
+        strmode(st->st_mode, mode);
 
-    printf("%s%d ", mode, st->st_nlink);
+        printf("%s%d ", mode, st->st_nlink);
 
-    if (!opt->numerical_ids && (user = getpwuid(st->st_uid)) != NULL)
-        printf("%s ", user->pw_name);
-    else
-        printf("%d ", st->st_uid);
+        if (!opt->numerical_ids && (user = getpwuid(st->st_uid)) != NULL)
+            printf("%s ", user->pw_name);
+        else
+            printf("%d ", st->st_uid);
 
-    if (!opt->numerical_ids && (group = getgrgid(st->st_gid)) != NULL)
-        printf("%s ", group->gr_name);
-    else
-        printf("%d ", st->st_gid);
+        if (!opt->numerical_ids && (group = getgrgid(st->st_gid)) != NULL)
+            printf("%s ", group->gr_name);
+        else
+            printf("%d ", st->st_gid);
 
-    if (opt->time == STATUS_CHANGED)
-        time = localtime(&st->st_ctime);
-    else if (opt->time == LAST_MODIFIED)
-        time = localtime(&st->st_mtime);
-    else
-        time = localtime(&st->st_mtime);
+        if (opt->time == STATUS_CHANGED)
+            time = localtime(&st->st_ctime);
+        else if (opt->time == LAST_MODIFIED)
+            time = localtime(&st->st_mtime);
+        else
+            time = localtime(&st->st_mtime);
 
-    if (S_ISCHR(st->st_mode) || S_ISBLK(st->st_mode))
-        printf("%d, %d ", major(st->st_rdev), minor(st->st_rdev));
-    else
-        printf("%lld ", st->st_size);
+        if (S_ISCHR(st->st_mode) || S_ISBLK(st->st_mode))
+            printf("%d, %d ", major(st->st_rdev), minor(st->st_rdev));
+        else
+            printf("%lld ", st->st_size);
 
-    printf("%s %2d %02d:%02d %s\n",
-            months[time->tm_mon], time->tm_mday, time->tm_hour, time->tm_min,
-            ent->fts_name);
+        printf("%s %2d %02d:%02d ", months[time->tm_mon], time->tm_mday, time->tm_hour, time->tm_min);
+    }
+
+    printf("%s", ent->fts_name);
+
+    printf("\n");
 }
 
 int sort_alpha(const FTSENT **a, const FTSENT **b)
@@ -150,10 +154,7 @@ void ls(char *files[], int files_len, options *opt)
                 if (ent->fts_name[0] == '.' && opt->filter == NORMAL)
                     continue;
 
-                if (opt->long_mode)
-                    print_long(ent, opt);
-                else
-                    printf("%s\n", ent->fts_name);
+                print(ent, opt);
             }
             printf("\n"); // TODO: don't print for last entry
             if (!opt->recurse)
