@@ -50,6 +50,7 @@ typedef struct {
     long blocksize;
     bool blocks_kb;
     bool humanize;
+    bool hide_nonprintable;
 } options;
 
 options opt;
@@ -131,11 +132,12 @@ void print(FTSENT *ent)
         printf("%s %2d %02d:%02d ", months[time->tm_mon], time->tm_mday, time->tm_hour, time->tm_min);
     }
 
-    for (char *c = ent->fts_name; *c; ++c)
-        if (isprint((int)*c))
-            putchar(*c);
-        else
+    for (char *c = ent->fts_name; *c; ++c) {
+        if (opt.hide_nonprintable && !isprint((int)*c))
             putchar('?');
+        else
+            putchar(*c);
+    }
 
     if (opt.file_type_char) {
         if (S_ISDIR(st->st_mode)) putchar('/');
@@ -275,7 +277,8 @@ int main(int argc, char *argv[])
         .print_blocks = false,
         .blocksize = 512,
         .humanize = false,
-        .blocks_kb = false
+        .blocks_kb = false,
+        .hide_nonprintable = isatty(STDOUT_FILENO)
     };
 
     while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
@@ -312,6 +315,9 @@ int main(int argc, char *argv[])
                 break;
             case 'n':
                 opt.numerical_ids = true;
+                break;
+            case 'q':
+                opt.hide_nonprintable = true;
                 break;
             case 'R':
                 opt.recurse = true;
