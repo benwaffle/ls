@@ -49,6 +49,7 @@ typedef struct {
     bool print_blocks;
     long blocksize;
     bool blocks_kb;
+    bool humanize;
 } options;
 
 options opt;
@@ -77,7 +78,15 @@ void print(FTSENT *ent)
     struct stat *st = ent->fts_statp;
 
     if (opt.print_blocks) {
-        printf("%lld ", (long long)ceil((st->st_blocks * 512) / (double)opt.blocksize));
+        long long block_bytes = st->st_blocks * 512;
+        if (opt.humanize) {
+            char buf[5]; // null + 4 chars, because 999B fits, and 1000B = 1.0K
+            if (humanize_number(buf, sizeof buf, block_bytes, "", HN_AUTOSCALE, HN_DECIMAL | HN_B | HN_NOSPACE) == -1)
+                err(1, "humanize_number(%lld)", block_bytes);
+
+            printf("%s ", buf);
+        } else
+            printf("%lld ", (long long)ceil(block_bytes / (double)opt.blocksize));
     }
 
     if (opt.print_inode) {
@@ -109,7 +118,13 @@ void print(FTSENT *ent)
 
         if (S_ISCHR(st->st_mode) || S_ISBLK(st->st_mode))
             printf("%d, %d ", major(st->st_rdev), minor(st->st_rdev));
-        else
+        else if (opt.humanize) {
+            char buf[5]; // null + 4 chars, because 999B fits, and 1000B = 1.0K
+            if (humanize_number(buf, sizeof buf, st->st_size, "", HN_AUTOSCALE, HN_DECIMAL | HN_B | HN_NOSPACE) == -1)
+                err(1, "humanize_number(%lld)", (long long)st->st_size);
+
+            printf("%s ", buf);
+        } else
             // cast to potentially larger size for compatibility with more platforms
             printf("%lld ", (long long)st->st_size);
 
@@ -259,6 +274,7 @@ int main(int argc, char *argv[])
         .print_inode = false,
         .print_blocks = false,
         .blocksize = 512,
+        .humanize = false,
         .blocks_kb = false
     };
 
@@ -281,6 +297,9 @@ int main(int argc, char *argv[])
                 break;
             case 'f':
                 opt.sort = NOT_SORTED;
+                break;
+            case 'h':
+                opt.humanize = true;
                 break;
             case 'i':
                 opt.print_inode = true;
