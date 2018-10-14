@@ -44,6 +44,8 @@ typedef struct {
     bool file_type_char;
 } options;
 
+options opt;
+
 const char *months[] = {
     "Jan",
     "Feb",
@@ -59,7 +61,7 @@ const char *months[] = {
     "Dec"
 };
 
-void print(FTSENT *ent, options *opt)
+void print(FTSENT *ent)
 {
     char mode[12]; // 11 chars + null, according to man page
     struct passwd *user;
@@ -67,27 +69,27 @@ void print(FTSENT *ent, options *opt)
     struct tm *time;
     struct stat *st = ent->fts_statp;
 
-    if (opt->long_mode) {
+    if (opt.long_mode) {
         strmode(st->st_mode, mode);
 
         printf("%s%d ", mode, st->st_nlink);
 
-        if (!opt->numerical_ids && (user = getpwuid(st->st_uid)) != NULL)
+        if (!opt.numerical_ids && (user = getpwuid(st->st_uid)) != NULL)
             printf("%s ", user->pw_name);
         else
             printf("%d ", st->st_uid);
 
-        if (!opt->numerical_ids && (group = getgrgid(st->st_gid)) != NULL)
+        if (!opt.numerical_ids && (group = getgrgid(st->st_gid)) != NULL)
             printf("%s ", group->gr_name);
         else
             printf("%d ", st->st_gid);
 
-        if (opt->time == STATUS_CHANGED)
+        if (opt.time == STATUS_CHANGED)
             time = localtime(&st->st_ctime);
-        else if (opt->time == LAST_MODIFIED)
+        else if (opt.time == LAST_MODIFIED)
             time = localtime(&st->st_mtime);
         else
-            time = localtime(&st->st_mtime);
+            time = localtime(&st->st_atime);
 
         if (S_ISCHR(st->st_mode) || S_ISBLK(st->st_mode))
             printf("%d, %d ", major(st->st_rdev), minor(st->st_rdev));
@@ -99,7 +101,7 @@ void print(FTSENT *ent, options *opt)
 
     printf("%s", ent->fts_name);
 
-    if (opt->file_type_char) {
+    if (opt.file_type_char) {
         if (S_ISDIR(st->st_mode)) printf("/");
         else if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) printf("*");
         else if (S_ISLNK(st->st_mode)) printf("@");
@@ -111,12 +113,34 @@ void print(FTSENT *ent, options *opt)
     printf("\n");
 }
 
-int sort_alpha(const FTSENT **a, const FTSENT **b)
+
+
+int cmp_alpha(const FTSENT **a, const FTSENT **b)
 {
     return strcmp((*a)->fts_name, (*b)->fts_name);
 }
 
-int sort_size(const FTSENT **a, const FTSENT **b)
+int cmp_time(const FTSENT **a, const FTSENT **b)
+{
+    time_t at, bt;
+
+    if (opt.time == STATUS_CHANGED) {
+        at = (*a)->fts_statp->st_ctime;
+        bt = (*b)->fts_statp->st_ctime;
+    } else if (opt.time == LAST_ACCESSED) {
+        at = (*a)->fts_statp->st_atime;
+        bt = (*b)->fts_statp->st_atime;
+    } else {
+        at = (*a)->fts_statp->st_mtime;
+        bt = (*b)->fts_statp->st_mtime;
+    }
+
+    if (at < bt) return -1;
+    if (at == bt) return 0;
+    return 1;
+}
+
+int cmp_size(const FTSENT **a, const FTSENT **b)
 {
     off_t asz, bsz;
 
@@ -128,46 +152,53 @@ int sort_size(const FTSENT **a, const FTSENT **b)
     return 1;
 }
 
-void ls(char *files[], int files_len, options *opt)
+int main_compare(const FTSENT **a, const FTSENT **b)
+{
+    int res;
+
+    if (opt.sort == SIZE)
+        res = cmp_size(a, b);
+    else if (opt.sort == TIME)
+        res = cmp_time(a, b);
+    else if (opt.sort == ALPHABETICAL)
+        res = cmp_alpha(a, b);
+    else
+        errx(1, "invalid sort function");
+
+    if (opt.sort_reverse)
+        res *= -1;
+    return res;
+}
+
+void ls(char *files[], int files_len)
 {
     int fts_flags = FTS_PHYSICAL;
-    if (opt->filter == ALL)
+    if (opt.filter == ALL)
         fts_flags |= FTS_SEEDOT;
 
-    typedef int compar(const FTSENT **, const FTSENT **);
-
-    compar *cmp = NULL;
-
-    if (opt->sort == SIZE)
-        cmp = sort_size;
-    /*else if (opt->sort == TIME) {
-        cmp = sort_time;
-    }*/ else if (opt->sort == ALPHABETICAL)
-        cmp = sort_alpha;
-
-    FTS *fts = fts_open(files, fts_flags, cmp);
+    FTS *fts = fts_open(files, fts_flags, (opt.sort == NOT_SORTED ? NULL : main_compare));
     if (fts == NULL)
         err(1, "fts_open %s", files[0]);
 
     for (FTSENT *cur = fts_read(fts); cur != NULL; cur = fts_read(fts)) {
         // ls -R does not show dotfiles
-        if (cur->fts_name[0] == '.' && opt->filter == NORMAL && cur->fts_level > 0) {
+        if (cur->fts_name[0] == '.' && opt.filter == NORMAL && cur->fts_level > 0) {
             fts_set(fts, cur, FTS_SKIP);
             continue;
         }
 
         if (cur->fts_info == FTS_D) {
-            if (files_len > 1 || opt->recurse)
+            if (files_len > 1 || opt.recurse)
                 printf("%s:\n", cur->fts_path);
 
             for (FTSENT *ent = fts_children(fts, 0); ent != NULL; ent = ent->fts_link) {
-                if (ent->fts_name[0] == '.' && opt->filter == NORMAL)
+                if (ent->fts_name[0] == '.' && opt.filter == NORMAL)
                     continue;
 
-                print(ent, opt);
+                print(ent);
             }
             printf("\n"); // TODO: don't print for last entry
-            if (!opt->recurse)
+            if (!opt.recurse)
                 fts_set(fts, cur, FTS_SKIP);
         }
     }
@@ -180,7 +211,6 @@ void ls(char *files[], int files_len, options *opt)
 int main(int argc, char *argv[])
 {
     int ch;
-    options opt;
     bool multi_col = isatty(STDOUT_FILENO);
 
     opt = (options){
@@ -252,5 +282,5 @@ int main(int argc, char *argv[])
         files_len = 1;
     }
 
-    ls(files, files_len, &opt);
+    ls(files, files_len);
 }
