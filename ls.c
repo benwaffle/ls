@@ -158,9 +158,11 @@ int main_compare(const FTSENT **a, const FTSENT **b)
 
     if (opt.sort == SIZE)
         res = cmp_size(a, b);
-    else if (opt.sort == TIME)
+    else if (opt.sort == TIME) {
         res = cmp_time(a, b);
-    else if (opt.sort == ALPHABETICAL)
+        if (res == 0)
+            res = cmp_alpha(a, b);
+    } else if (opt.sort == ALPHABETICAL)
         res = cmp_alpha(a, b);
     else
         errx(1, "invalid sort function");
@@ -261,7 +263,6 @@ int main(int argc, char *argv[])
                 break;
             case 't':
                 opt.sort = TIME;
-                opt.time = LAST_MODIFIED;
                 break;
             case 'u':
                 opt.time = LAST_ACCESSED;
