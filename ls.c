@@ -283,6 +283,9 @@ int main(int argc, char *argv[])
 
     while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
         switch (ch) {
+            case '1':
+                opt.long_mode = false;
+                break;
             case 'A':
                 opt.filter = ALL_EXCEPT_DOT;
                 break;
