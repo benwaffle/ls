@@ -52,6 +52,7 @@ typedef struct {
     bool blocks_kb;
     bool humanize;
     bool hide_nonprintable;
+    bool go_into_dirs;
 } options;
 
 options opt;
@@ -175,7 +176,7 @@ void print_all(FTSENT *children)
     block_total = 0;
 
     for (FTSENT *cur = children; cur; cur = cur->fts_link) {
-        if (cur->fts_name[0] == '.' && opt.filter == NORMAL)
+        if (opt.go_into_dirs && (cur->fts_name[0] == '.' && opt.filter == NORMAL))
             continue;
 
         max_inode_len = MAX(max_inode_len, strlen(DATA(cur)->inode));
@@ -203,7 +204,7 @@ void print_all(FTSENT *children)
     }
 
     for (FTSENT *cur = children; cur; cur = cur->fts_link) {
-        if (cur->fts_name[0] == '.' && opt.filter == NORMAL)
+        if (opt.go_into_dirs && (cur->fts_name[0] == '.' && opt.filter == NORMAL))
             continue;
 
         if (opt.print_inode) {
@@ -331,20 +332,40 @@ void ls(char *files[], int files_len)
             continue;
         }
 
+        if (!opt.go_into_dirs)
+            fts_set(fts, cur, FTS_SKIP);
+
         if (cur->fts_info == FTS_D) {
             if (first)
                 first = false;
             else
                 printf("\n");
 
-            if (files_len > 1 || opt.recurse)
+            if ((files_len > 1 || opt.recurse) && opt.go_into_dirs)
                 printf("%s:\n", cur->fts_path);
 
-            FTSENT *children = fts_children(fts, 0);
-            for (FTSENT *ent = children; ent; ent = ent->fts_link)
-                get_print_data(ent);
+            if (opt.go_into_dirs) {
+                FTSENT *children = fts_children(fts, 0);
+                for (FTSENT *ent = children; ent; ent = ent->fts_link)
+                    get_print_data(ent);
 
-            print_all(children);
+                print_all(children);
+
+                for (FTSENT *ent = children; ent; ent = ent->fts_link) {
+                    free(DATA(ent)->user);
+                    free(DATA(ent)->group);
+                    free(DATA(ent)->filename);
+                    free(ent->fts_pointer);
+                }
+            } else {
+                get_print_data(cur);
+                cur->fts_link = NULL;
+                print_all(cur);
+                free(DATA(cur)->user);
+                free(DATA(cur)->group);
+                free(DATA(cur)->filename);
+                free(cur->fts_pointer);
+            }
 
             if (!opt.recurse)
                 fts_set(fts, cur, FTS_SKIP);
@@ -375,7 +396,8 @@ int main(int argc, char *argv[])
         .blocksize = 512,
         .blocks_kb = false,
         .humanize = false,
-        .hide_nonprintable = isatty(STDOUT_FILENO)
+        .hide_nonprintable = isatty(STDOUT_FILENO),
+        .go_into_dirs = true
     };
 
     while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
@@ -394,6 +416,9 @@ int main(int argc, char *argv[])
                 break;
             case 'c':
                 opt.time = STATUS_CHANGED;
+                break;
+            case 'd':
+                opt.go_into_dirs = false;
                 break;
             case 'F':
                 opt.file_type_char = true;
