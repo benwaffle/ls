@@ -22,7 +22,8 @@ const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 /**
  * Assemble all of the strings we want to print, and put them in
  * ent->fts_pointer. This allows us to measure the widest string in a column
- * and pad all the entries. Most of the things we need are printed in long mode
+ * and pad all the entries. Most of the things we retrieve are printed in long
+ * mode (-l)
  */
 void get_print_data(FTSENT *ent) {
 	char path[PATH_MAX] = {0};
