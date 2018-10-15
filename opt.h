@@ -3,11 +3,24 @@
 
 #include <stdbool.h>
 
-typedef enum { NORMAL, ALL, ALL_EXCEPT_DOT } list_filter;
+typedef enum {
+	NORMAL,
+	ALL,
+	ALL_EXCEPT_DOT
+} list_filter;
 
-typedef enum { STATUS_CHANGED, LAST_MODIFIED, LAST_ACCESSED } time_category;
+typedef enum {
+	STATUS_CHANGED,
+	LAST_MODIFIED,
+	LAST_ACCESSED
+} time_category;
 
-typedef enum { NOT_SORTED, SIZE, TIME, ALPHABETICAL } sort_field;
+typedef enum {
+	NOT_SORTED,
+	SIZE,
+	TIME,
+	ALPHABETICAL
+} sort_field;
 
 typedef struct options {
 	long blocksize;
