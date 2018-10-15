@@ -16,7 +16,6 @@
 #include <grp.h>
 #include <time.h>
 #include <math.h>
-#include <sys/sysmacros.h>
 
 typedef enum {
     NORMAL,
@@ -97,7 +96,8 @@ void get_print_data(FTSENT *ent)
 
     long long block_bytes = st->st_blocks * 512;
     if (opt.humanize) {
-        if (humanize_number(data->blocks, sizeof data->blocks, block_bytes, "", HN_AUTOSCALE, HN_DECIMAL | HN_B | HN_NOSPACE) == -1)
+        // size=5, because 999B is 4 chars, and 1000B = 1.0K is 4 chars
+        if (humanize_number(data->blocks, 5, block_bytes, "", HN_AUTOSCALE, HN_DECIMAL | HN_B | HN_NOSPACE) == -1)
             err(1, "humanize_number(%lld)", block_bytes);
     } else {
         snprintf(data->blocks, sizeof data->blocks, "%lld", (long long)ceil(block_bytes / (double)opt.blocksize));
@@ -125,7 +125,7 @@ void get_print_data(FTSENT *ent)
         data->major = major(st->st_rdev);
         data->minor = minor(st->st_rdev);
     } else if (opt.humanize) {
-        if (humanize_number(data->size, sizeof data->size, st->st_size, "", HN_AUTOSCALE, HN_DECIMAL | HN_B | HN_NOSPACE) == -1)
+        if (humanize_number(data->size, 5, st->st_size, "", HN_AUTOSCALE, HN_DECIMAL | HN_B | HN_NOSPACE) == -1)
             err(1, "humanize_number(%lld)", (long long)st->st_size);
     } else {
         // cast to potentially larger size for compatibility with more platforms
