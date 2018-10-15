@@ -1,27 +1,16 @@
-#include <stdio.h>
-#include <ctype.h>
-#include <limits.h>
-#include <string.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <fts.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <err.h>
-#include <sys/types.h>
-#include <pwd.h>
-#include <grp.h>
-#include <time.h>
-#include <math.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "compare.h"
 #include "opt.h"
 #include "print.h"
 
 options opt;
+
 void ls(char *files[], int files_len)
 {
     int fts_flags = FTS_PHYSICAL;
