@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <err.h>
 #include <grp.h>
+#include <inttypes.h>
 #include <math.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -20,7 +21,7 @@ const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 
 void get_print_data(FTSENT *ent) {
 	char path[PATH_MAX] = {0};
-	long long block_bytes;
+	intmax_t block_bytes;
 	struct passwd *user;
 	struct group *group;
 	struct tm *time;
@@ -30,11 +31,10 @@ void get_print_data(FTSENT *ent) {
 	st = ent->fts_statp;
 	data = calloc(1, sizeof(print_data));
 	if (!data)
-		err(1, "malloc print_data");
+		err(1, "malloc(sizeof print_data)");
 	ent->fts_pointer = data;
 
-	snprintf(data->inode, sizeof data->inode, "%llu",
-	         (long long unsigned)st->st_ino);
+	snprintf(data->inode, sizeof data->inode, "%" PRIuMAX, (uintmax_t)st->st_ino);
 
 	block_bytes = st->st_blocks * 512;
 	if (opt.humanize) {
@@ -42,15 +42,15 @@ void get_print_data(FTSENT *ent) {
 		if (humanize_number(data->blocks, 5, block_bytes, "",
 		                    HN_AUTOSCALE,
 		                    HN_DECIMAL | HN_B | HN_NOSPACE) == -1)
-			err(1, "humanize_number(%lld)", block_bytes);
+			err(1, "humanize_number(%" PRIdMAX ")", block_bytes);
 	} else {
-		snprintf(data->blocks, sizeof data->blocks, "%lld",
-		         (long long)ceil(block_bytes / (double)opt.blocksize));
+		snprintf(data->blocks, sizeof data->blocks, "%" PRIdMAX,
+		         (intmax_t)ceil(block_bytes / (double)opt.blocksize));
 	}
 
 	strmode(st->st_mode, data->mode);
 
-	snprintf(data->nlink, sizeof data->nlink, "%ld", (long)st->st_nlink);
+	snprintf(data->nlink, sizeof data->nlink, "%" PRIdMAX, (intmax_t)st->st_nlink);
 
 	if (!opt.numerical_ids && (user = getpwuid(st->st_uid)) != NULL)
 		data->user = strdup(user->pw_name);
@@ -73,12 +73,12 @@ void get_print_data(FTSENT *ent) {
 		if (humanize_number(data->size, 5, st->st_size, "",
 		                    HN_AUTOSCALE,
 		                    HN_DECIMAL | HN_B | HN_NOSPACE) == -1)
-			err(1, "humanize_number(%lld)", (long long)st->st_size);
+			err(1, "humanize_number(%" PRIdMAX ")", (intmax_t)st->st_size);
 	} else {
 		// cast to potentially larger size for compatibility with more
 		// platforms
-		snprintf(data->size, sizeof data->size, "%lld",
-		         (long long)st->st_size);
+		snprintf(data->size, sizeof data->size, "%" PRIdMAX,
+		         (intmax_t)st->st_size);
 	}
 
 	if (opt.time == STATUS_CHANGED)
@@ -122,7 +122,7 @@ void get_print_data(FTSENT *ent) {
 }
 
 void print_all(FTSENT *children) {
-	long long block_total, size_total;
+	intmax_t block_total, size_total;
 	FTSENT *cur;
 	unsigned max_inode_len, max_block_len, max_nlink_len, max_user_len,
 	    max_group_len, max_size_len, max_major_len, max_minor_len,
@@ -168,10 +168,10 @@ void print_all(FTSENT *children) {
 			if (humanize_number(
 			        buf, sizeof buf, size_total, "", HN_AUTOSCALE,
 			        HN_DECIMAL | HN_B | HN_NOSPACE) == -1)
-				err(1, "humanize_number(%lld)", size_total);
+				err(1, "humanize_number(%" PRIdMAX ")", size_total);
 			printf("total %s\n", buf);
 		} else {
-			printf("total %lld\n", (long long)block_total);
+			printf("total %" PRIdMAX "\n", (intmax_t)block_total);
 		}
 	}
 
