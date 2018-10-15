@@ -27,18 +27,25 @@ const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
  */
 void get_print_data(FTSENT *ent) {
 	char path[PATH_MAX] = {0};
+	time_t now;
 	intmax_t block_bytes;
 	struct passwd *user;
 	struct group *group;
-	struct tm *time;
+	struct tm *tm;
 	struct stat *st;
 	print_data *data;
+	bool older_6mo;
 
 	st = ent->fts_statp;
+
 	data = calloc(1, sizeof(print_data));
 	if (!data)
 		err(1, "malloc(sizeof print_data)");
 	ent->fts_pointer = data;
+	older_6mo = false;
+
+	if ((now = time(NULL)) == -1)
+		err(1, "time()");
 
 	snprintf(data->inode, sizeof data->inode, "%" PRIuMAX, (uintmax_t)st->st_ino);
 
@@ -95,19 +102,32 @@ void get_print_data(FTSENT *ent) {
 		         (intmax_t)st->st_size);
 	}
 
-	if (opt.time == STATUS_CHANGED)
-		time = localtime(&st->st_ctime);
-	else if (opt.time == LAST_MODIFIED)
-		time = localtime(&st->st_mtime);
-	else
-		time = localtime(&st->st_atime);
+#define SIXMONTHS (365/2 * 24 * 60 * 60)
 
-	if (!time)
+	if (opt.time == STATUS_CHANGED) {
+		tm = localtime(&st->st_ctime);
+		if (now - st->st_ctime > SIXMONTHS)
+			older_6mo = true;
+	} else if (opt.time == LAST_MODIFIED) {
+		tm = localtime(&st->st_mtime);
+		if (now - st->st_mtime > SIXMONTHS)
+			older_6mo = true;
+	} else {
+		tm = localtime(&st->st_atime);
+		if (now - st->st_atime > SIXMONTHS)
+			older_6mo = true;
+	}
+
+	if (!tm)
 		err(1, "localtime");
 
-	snprintf(data->time, sizeof data->time, "%s %2d %02d:%02d ",
-	         months[time->tm_mon], time->tm_mday, time->tm_hour,
-	         time->tm_min);
+	if (older_6mo)
+		snprintf(data->time, sizeof data->time, "%s %2d  %4d ",
+		         months[tm->tm_mon], tm->tm_mday, tm->tm_year + 1900);
+	else
+		snprintf(data->time, sizeof data->time, "%s %2d %02d:%02d ",
+		         months[tm->tm_mon], tm->tm_mday, tm->tm_hour,
+		         tm->tm_min);
 
 	data->filename = strdup(ent->fts_name);
 	if (!data->filename)
