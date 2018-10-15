@@ -199,7 +199,7 @@ void print_all(FTSENT *children)
         }
     }
 
-    if (opt.print_blocks) {
+    if (opt.print_blocks && isatty(STDOUT_FILENO)) {
         printf("total %lld\n", (long long)block_total);
     }
 
