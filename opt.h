@@ -22,22 +22,22 @@ typedef enum {
     ALPHABETICAL
 } sort_field;
 
-typedef struct {
-    bool long_mode;
-    bool recurse;
+typedef struct options {
+    long blocksize;
     list_filter filter;
     sort_field sort;
-    bool sort_reverse;
     time_category time;
-    bool numerical_ids;
-    bool file_type_char;
-    bool print_inode;
-    bool print_blocks;
-    long blocksize;
-    bool blocks_kb;
-    bool humanize;
-    bool hide_nonprintable;
-    bool go_into_dirs;
+    bool blocks_kb : 1;
+    bool file_type_char : 1;
+    bool go_into_dirs : 1;
+    bool hide_nonprintable : 1;
+    bool humanize : 1;
+    bool long_mode : 1;
+    bool numerical_ids : 1;
+    bool print_blocks : 1;
+    bool print_inode : 1;
+    bool recurse : 1;
+    bool sort_reverse : 1;
 } options;
 
 extern options opt;

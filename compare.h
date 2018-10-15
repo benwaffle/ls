@@ -3,9 +3,9 @@
 
 #include <fts.h>
 
-int cmp_alpha(const FTSENT **a, const FTSENT **b);
-int cmp_time(const FTSENT **a, const FTSENT **b);
-int cmp_size(const FTSENT **a, const FTSENT **b);
-int main_compare(const FTSENT **a, const FTSENT **b);
+int cmp_alpha(const FTSENT **, const FTSENT **);
+int cmp_time(const FTSENT **, const FTSENT **);
+int cmp_size(const FTSENT **, const FTSENT **);
+int main_compare(const FTSENT **, const FTSENT **);
 
 #endif

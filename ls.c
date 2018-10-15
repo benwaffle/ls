@@ -11,6 +11,9 @@
 
 options opt;
 
+void ls(char *[], int);
+int main(int, char **);
+
 void ls(char *files[], int files_len)
 {
     int fts_flags = FTS_PHYSICAL;
@@ -80,10 +83,14 @@ void ls(char *files[], int files_len)
     fts_close(fts);
 }
 
+/**
+ * Lists directory files, with many different options, as specified by POSIX ls(1)
+ */
 int main(int argc, char *argv[])
 {
     int ch;
-    bool multi_col = isatty(STDOUT_FILENO);
+
+    setprogname(argv[0]);
 
     opt = (options){
         .long_mode = false,
@@ -103,7 +110,7 @@ int main(int argc, char *argv[])
         .go_into_dirs = true
     };
 
-    while ((ch = getopt(argc, argv, "AacCdFfhiklnqRrSstuwx1")) != -1) {
+    while ((ch = getopt(argc, argv, "AacdFfhiklnqRrSstuw1")) != -1) {
         switch (ch) {
             case '1':
                 opt.long_mode = false;
@@ -113,9 +120,6 @@ int main(int argc, char *argv[])
                 break;
             case 'a':
                 opt.filter = ALL;
-                break;
-            case 'C':
-                multi_col = true;
                 break;
             case 'c':
                 opt.time = STATUS_CHANGED;
@@ -171,8 +175,6 @@ int main(int argc, char *argv[])
                 break;
         }
     }
-
-    (void)multi_col;
 
     argc -= optind;
     argv += optind;

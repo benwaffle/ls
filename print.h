@@ -27,7 +27,7 @@ typedef struct {
     char sym_target[PATH_MAX];
 } print_data;
 
-void get_print_data(FTSENT *ent);
-void print_all(FTSENT *children);
+void get_print_data(FTSENT *);
+void print_all(FTSENT *);
 
 #endif
