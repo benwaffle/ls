@@ -1,3 +1,6 @@
+#ifndef _MAC_H_
+#define _MAC_H_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -12,7 +15,10 @@
 #define HN_GETSCALE             0x10
 #define HN_AUTOSCALE            0x20
 
-int
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+
+static int
 humanize_number(char *buf, size_t len, int64_t bytes,
     const char *suffix, int scale, int flags)
 {
@@ -127,3 +133,7 @@ humanize_number(char *buf, size_t len, int64_t bytes,
 
 	return (r);
 }
+
+#pragma clang diagnostic pop
+
+#endif
