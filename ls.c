@@ -196,7 +196,7 @@ void print_all(FTSENT *children)
     }
 
     if (opt.print_blocks) {
-        printf("Total %lld\n", block_total);
+        printf("total %lld\n", (long long)block_total);
     }
 
     for (FTSENT *cur = children; cur; cur = cur->fts_link) {
