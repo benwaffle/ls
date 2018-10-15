@@ -170,10 +170,10 @@ void print_all(FTSENT *children)
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define DATA(ent) ((print_data*)ent->fts_pointer)
     unsigned max_inode_len, max_block_len, max_nlink_len, max_user_len, max_group_len, max_size_len, max_major_len, max_minor_len, max_time_len;
-    blkcnt_t block_total;
+    long long block_total, size_total;
 
     max_inode_len = max_block_len = max_nlink_len = max_user_len = max_group_len = max_size_len = max_major_len = max_minor_len = max_time_len = 0;
-    block_total = 0;
+    block_total = size_total = 0;
 
     for (FTSENT *cur = children; cur; cur = cur->fts_link) {
         if (opt.go_into_dirs && (cur->fts_name[0] == '.' && opt.filter == NORMAL))
@@ -186,7 +186,10 @@ void print_all(FTSENT *children)
         max_group_len = MAX(max_group_len, strlen(DATA(cur)->group));
         max_time_len = MAX(max_time_len, strlen(DATA(cur)->time));
 
-        block_total += cur->fts_statp->st_blocks;
+        if (opt.humanize)
+            size_total += cur->fts_statp->st_size;
+        else
+            block_total += cur->fts_statp->st_blocks;
 
         if (S_ISCHR(cur->fts_statp->st_mode) || S_ISBLK(cur->fts_statp->st_mode)) {
             unsigned major_len = (unsigned)floor(log10(DATA(cur)->major)+1);
@@ -200,7 +203,14 @@ void print_all(FTSENT *children)
     }
 
     if ((opt.long_mode || opt.print_blocks) && isatty(STDOUT_FILENO)) {
-        printf("total %lld\n", (long long)block_total);
+        if (opt.humanize) {
+            char buf[5];
+            if (humanize_number(buf, sizeof buf, size_total, "", HN_AUTOSCALE, HN_DECIMAL | HN_B | HN_NOSPACE) == -1)
+                err(1, "humanize_number(%lld)", size_total);
+            printf("total %s\n", buf);
+        } else {
+            printf("total %lld\n", (long long)block_total);
+        }
     }
 
     for (FTSENT *cur = children; cur; cur = cur->fts_link) {
@@ -483,8 +493,10 @@ int main(int argc, char *argv[])
         files_len = 1;
     }
 
-    int ignore;
-    (void)getbsize(&ignore, &opt.blocksize);
+    if (opt.print_blocks || opt.long_mode) {
+        int ignore;
+        (void)getbsize(&ignore, &opt.blocksize);
+    }
 
     if (opt.blocks_kb)
         opt.blocksize = 1024;
