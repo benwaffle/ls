@@ -153,7 +153,7 @@ void get_print_data(FTSENT *ent) {
 		data->mode_char = '|';
 
 	if (ent->fts_info == FTS_SL || ent->fts_info == FTS_SLNONE) {
-		snprintf(path, sizeof path, "%s/%s", ent->fts_path, ent->fts_accpath);
+		snprintf(path, sizeof path, "%s/%s", ent->fts_path, ent->fts_name);
 
 		if (readlink(path, data->sym_target, sizeof data->sym_target-1) == -1)
 			fprintf(stderr, "readlink(%s): %s\n", path, strerror(errno));

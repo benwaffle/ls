@@ -25,7 +25,7 @@ int ls(char *files[], int files_len) {
 	int fts_flags, ret;
 	bool first;
 
-	fts_flags = FTS_PHYSICAL;
+	fts_flags = FTS_PHYSICAL | FTS_NOCHDIR;
 	first = true;
 	ret = 0;
 
