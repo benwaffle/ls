@@ -379,6 +379,12 @@ void ls(char *files[], int files_len)
 
             if (!opt.recurse)
                 fts_set(fts, cur, FTS_SKIP);
+        } else if (cur->fts_info == FTS_DC
+                || cur->fts_info == FTS_DNR
+                || cur->fts_info == FTS_ERR
+                || cur->fts_info == FTS_NS
+                || cur->fts_info == FTS_NSOK) {
+            fprintf(stderr, "%s: %s: %s\n", getprogname(), cur->fts_accpath, strerror(cur->fts_errno));
         }
     }
 
