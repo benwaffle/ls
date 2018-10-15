@@ -13,7 +13,12 @@ options opt;
 
 void ls(char *[], int);
 int main(int, char **);
+void usage();
 
+/**
+ * Performs ls(1) on all of the supplied files using fts(3), while looking at
+ * the global options struct
+ */
 void ls(char *files[], int files_len) {
 	int fts_flags = FTS_PHYSICAL;
 	bool first = true;
@@ -84,6 +89,12 @@ void ls(char *files[], int files_len) {
 	fts_close(fts);
 }
 
+void usage()
+{
+	fprintf(stderr, "usage: %s [-1AacdFfhiklnqRrSstuw] [file ...]\n", getprogname());
+	exit(EXIT_FAILURE);
+}
+
 /**
  * Lists directory files, with many different options, as specified by POSIX
  * ls(1)
@@ -111,7 +122,7 @@ int main(int argc, char *argv[]) {
 		.go_into_dirs = true
 	};
 
-	while ((ch = getopt(argc, argv, "AacdFfhiklnqRrSstuw1")) != -1) {
+	while ((ch = getopt(argc, argv, "1AacdFfhiklnqRrSstuw")) != -1) {
 		switch (ch) {
 		case '1':
 			opt.long_mode = false;
@@ -174,6 +185,9 @@ int main(int argc, char *argv[]) {
 		case 'w':
 			opt.hide_nonprintable = false;
 			break;
+		default:
+			usage();
+			// NOTREACHED
 		}
 	}
 
