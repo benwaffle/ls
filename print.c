@@ -19,6 +19,11 @@
 const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
                         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
+/**
+ * Assemble all of the strings we want to print, and put them in
+ * ent->fts_pointer. This allows us to measure the widest string in a column
+ * and pad all the entries. Most of the things we need are printed in long mode
+ */
 void get_print_data(FTSENT *ent) {
 	char path[PATH_MAX] = {0};
 	intmax_t block_bytes;
@@ -133,6 +138,10 @@ void get_print_data(FTSENT *ent) {
 	}
 }
 
+/**
+ * Print a linked list of FTSENTs, given that the fts_pointer of each entry has
+ * a struct filled by get_print_data() above.
+ */
 void print_all(FTSENT *children) {
 	intmax_t block_total, size_total;
 	FTSENT *cur;

@@ -7,10 +7,16 @@
 #include "compare.h"
 #include "opt.h"
 
+/**
+ * Compare two FTSENTs lexicographically
+ */
 int cmp_alpha(const FTSENT **a, const FTSENT **b) {
 	return strcmp((*a)->fts_name, (*b)->fts_name);
 }
 
+/**
+ * Compare two FTSENTs chronologically
+ */
 int cmp_time(const FTSENT **a, const FTSENT **b) {
 	time_t at, bt;
 
@@ -32,6 +38,9 @@ int cmp_time(const FTSENT **a, const FTSENT **b) {
 	return 1;
 }
 
+/**
+ * Compare two FTSENTs by file size
+ */
 int cmp_size(const FTSENT **a, const FTSENT **b) {
 	off_t asz, bsz;
 
@@ -45,6 +54,10 @@ int cmp_size(const FTSENT **a, const FTSENT **b) {
 	return 1;
 }
 
+/**
+ * The main comparison function that is passed to fts_open(3). This delegates
+ * to a comparison function above and handles fallbacks and reverse sorting.
+ */
 int main_compare(const FTSENT **a, const FTSENT **b) {
 	int res;
 
