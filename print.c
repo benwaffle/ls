@@ -19,17 +19,24 @@ const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
                         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
 void get_print_data(FTSENT *ent) {
+	char path[PATH_MAX] = {0};
+	long long block_bytes;
 	struct passwd *user;
 	struct group *group;
 	struct tm *time;
-	struct stat *st = ent->fts_statp;
-	print_data *data = calloc(1, sizeof(print_data));
+	struct stat *st;
+	print_data *data;
+
+	st = ent->fts_statp;
+	data = calloc(1, sizeof(print_data));
+	if (!data)
+		err(1, "malloc print_data");
 	ent->fts_pointer = data;
 
 	snprintf(data->inode, sizeof data->inode, "%llu",
 	         (long long unsigned)st->st_ino);
 
-	long long block_bytes = st->st_blocks * 512;
+	block_bytes = st->st_blocks * 512;
 	if (opt.humanize) {
 		// size=5, because 999B is 4 chars, and 1000B = 1.0K is 4 chars
 		if (humanize_number(data->blocks, 5, block_bytes, "",
@@ -106,29 +113,27 @@ void get_print_data(FTSENT *ent) {
 		data->mode_char = '|';
 
 	if (ent->fts_info == FTS_SL || ent->fts_info == FTS_SLNONE) {
-		char path[PATH_MAX] = {0};
-		snprintf(path, sizeof path, "%s/%s", ent->fts_path,
-		         ent->fts_accpath);
+		snprintf(path, sizeof path, "%s/%s", ent->fts_path, ent->fts_accpath);
 
-		if (readlink(path, data->sym_target, sizeof data->sym_target) ==
-		    -1) {
+		if (readlink(path, data->sym_target, sizeof data->sym_target) == -1) {
 			err(1, "readlink(%s)", path);
 		}
 	}
 }
 
 void print_all(FTSENT *children) {
+	long long block_total, size_total;
+	FTSENT *cur;
 	unsigned max_inode_len, max_block_len, max_nlink_len, max_user_len,
 	    max_group_len, max_size_len, max_major_len, max_minor_len,
-	    max_time_len;
-	long long block_total, size_total;
+	    max_time_len, major_len, minor_len;
 
 	max_inode_len = max_block_len = max_nlink_len = max_user_len =
 	    max_group_len = max_size_len = max_major_len = max_minor_len =
 	        max_time_len = 0;
 	block_total = size_total = 0;
 
-	for (FTSENT *cur = children; cur; cur = cur->fts_link) {
+	for (cur = children; cur; cur = cur->fts_link) {
 		if (opt.go_into_dirs &&
 		    (cur->fts_name[0] == '.' && opt.filter == NORMAL))
 			continue;
@@ -147,8 +152,8 @@ void print_all(FTSENT *children) {
 
 		if (S_ISCHR(cur->fts_statp->st_mode) || S_ISBLK(cur->fts_statp->st_mode)) {
 			// we do this so the comma is aligned for all major, minor pairs
-			unsigned major_len = (unsigned)floor(log10(DATA(cur)->major) + 1);
-			unsigned minor_len = (unsigned)floor(log10(DATA(cur)->minor) + 1);
+			major_len = (unsigned)floor(log10(DATA(cur)->major) + 1);
+			minor_len = (unsigned)floor(log10(DATA(cur)->minor) + 1);
 			max_major_len = MAX(max_major_len, major_len);
 			max_minor_len = MAX(max_minor_len, minor_len);
 			max_size_len = MAX(max_size_len, max_major_len + 2 + max_minor_len);
@@ -170,7 +175,7 @@ void print_all(FTSENT *children) {
 		}
 	}
 
-	for (FTSENT *cur = children; cur; cur = cur->fts_link) {
+	for (cur = children; cur; cur = cur->fts_link) {
 		if (opt.go_into_dirs &&
 		    (cur->fts_name[0] == '.' && opt.filter == NORMAL))
 			continue;
@@ -212,15 +217,7 @@ void print_all(FTSENT *children) {
 
 		if (opt.long_mode) {
 			if (cur->fts_info == FTS_SL || cur->fts_info == FTS_SLNONE) {
-				char path[PATH_MAX] = {0};
-				snprintf(path, sizeof path, "%s/%s",
-				         cur->fts_path, cur->fts_accpath);
-
-				char buf[PATH_MAX] = {0};
-				if (readlink(path, buf, sizeof buf) == -1) {
-					err(1, "readlink(%s)", path);
-				}
-				printf(" -> %s", buf);
+				printf(" -> %s", DATA(cur)->sym_target);
 			}
 		}
 

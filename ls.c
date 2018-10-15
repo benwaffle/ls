@@ -20,17 +20,23 @@ void usage();
  * the global options struct
  */
 void ls(char *files[], int files_len) {
-	int fts_flags = FTS_PHYSICAL;
-	bool first = true;
+	FTS *fts;
+	FTSENT *cur;
+	int fts_flags;
+	bool first;
+
+	fts_flags = FTS_PHYSICAL;
+	first = true;
+
 	if (opt.filter == ALL)
 		fts_flags |= FTS_SEEDOT;
 
-	FTS *fts = fts_open(files, fts_flags,
-	                    (opt.sort == NOT_SORTED ? NULL : main_compare));
+	fts = fts_open(files, fts_flags,
+			      (opt.sort == NOT_SORTED ? NULL : main_compare));
 	if (fts == NULL)
 		err(1, "fts_open %s", files[0]);
 
-	for (FTSENT *cur = fts_read(fts); cur != NULL; cur = fts_read(fts)) {
+	for (cur = fts_read(fts); cur != NULL; cur = fts_read(fts)) {
 		// ls -R does not show dotfiles
 		if (cur->fts_name[0] == '.' && opt.filter == NORMAL && cur->fts_level > 0) {
 			fts_set(fts, cur, FTS_SKIP);
@@ -100,7 +106,8 @@ void usage()
  * ls(1)
  */
 int main(int argc, char *argv[]) {
-	int ch;
+	char **files;
+	int ch, files_len;
 
 	setprogname(argv[0]);
 
@@ -194,8 +201,8 @@ int main(int argc, char *argv[]) {
 	argc -= optind;
 	argv += optind;
 
-	char **files = argv;
-	int files_len = argc;
+	files = argv;
+	files_len = argc;
 
 	// ls, without args, behaves as if you ran `ls .'
 	if (*argv == NULL) {
