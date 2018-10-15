@@ -1,0 +1,4 @@
+ls(1):
+
+Problems:
+ls -d . .. / only works for the first argument. I tried debugging with printf and gdb, but I'm not sure why fts_read() does not return more files (even with all the fts_set(FTS_SKIP) disabled)
