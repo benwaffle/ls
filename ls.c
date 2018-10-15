@@ -40,12 +40,14 @@ int ls(char *files[], int files_len) {
 	for (cur = fts_read(fts); cur != NULL; cur = fts_read(fts)) {
 		// ls -R does not show dotfiles
 		if (cur->fts_name[0] == '.' && opt.filter == NORMAL && cur->fts_level > 0) {
-			fts_set(fts, cur, FTS_SKIP);
+			if (fts_set(fts, cur, FTS_SKIP) == -1)
+				err(1, "fts_set %s/%s", cur->fts_path, cur->fts_accpath);
 			continue;
 		}
 
 		if (!opt.go_into_dirs)
-			fts_set(fts, cur, FTS_SKIP);
+			if (fts_set(fts, cur, FTS_SKIP) == -1)
+				err(1, "fts_set %s/%s", cur->fts_path, cur->fts_accpath);
 
 		if (cur->fts_info == FTS_D) {
 			if (first)
@@ -58,6 +60,8 @@ int ls(char *files[], int files_len) {
 
 			if (opt.go_into_dirs) {
 				FTSENT *children = fts_children(fts, 0);
+				if (!children)
+					err(1, "fts_children");
 				for (FTSENT *ent = children; ent; ent = ent->fts_link)
 					get_print_data(ent);
 
@@ -80,7 +84,8 @@ int ls(char *files[], int files_len) {
 			}
 
 			if (!opt.recurse)
-				fts_set(fts, cur, FTS_SKIP);
+				if (fts_set(fts, cur, FTS_SKIP) == -1)
+					err(1, "fts_set %s/%s", cur->fts_path, cur->fts_accpath);
 		} else if (cur->fts_info == FTS_DNR ||
 		           cur->fts_info == FTS_ERR ||
 		           cur->fts_info == FTS_NS) {
@@ -92,7 +97,8 @@ int ls(char *files[], int files_len) {
 
 	if (errno != 0)
 		err(1, "fts_read");
-	fts_close(fts);
+	if (fts_close(fts) == -1)
+		err(1, "fts_close");
 	return ret;
 }
 

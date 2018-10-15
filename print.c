@@ -52,17 +52,25 @@ void get_print_data(FTSENT *ent) {
 
 	snprintf(data->nlink, sizeof data->nlink, "%" PRIdMAX, (intmax_t)st->st_nlink);
 
-	if (!opt.numerical_ids && (user = getpwuid(st->st_uid)) != NULL)
+	if (!opt.numerical_ids && (user = getpwuid(st->st_uid)) != NULL) {
 		data->user = strdup(user->pw_name);
-	else {
+		if (!data->user)
+			err(1, "strdup(%s)", user->pw_name);
+	} else {
 		data->user = calloc(1, 11);
+		if (!data->user)
+			err(1, "calloc(11)");
 		snprintf(data->user, 11, "%d", st->st_uid);
 	}
 
-	if (!opt.numerical_ids && (group = getgrgid(st->st_gid)) != NULL)
+	if (!opt.numerical_ids && (group = getgrgid(st->st_gid)) != NULL) {
 		data->group = strdup(group->gr_name);
-	else {
+		if (!data->group)
+			err(1, "strdup(%s)", group->gr_name);
+	} else {
 		data->group = calloc(1, 11);
+		if (!data->group)
+			err(1, "calloc(11)");
 		snprintf(data->group, 11, "%d", st->st_gid);
 	}
 
@@ -88,11 +96,16 @@ void get_print_data(FTSENT *ent) {
 	else
 		time = localtime(&st->st_atime);
 
+	if (!time)
+		err(1, "localtime");
+
 	snprintf(data->time, sizeof data->time, "%s %2d %02d:%02d ",
 	         months[time->tm_mon], time->tm_mday, time->tm_hour,
 	         time->tm_min);
 
 	data->filename = strdup(ent->fts_name);
+	if (!data->filename)
+		err(1, "strdup(%s)", ent->fts_name);
 	for (char *c = data->filename; *c; ++c)
 		if (opt.hide_nonprintable && !isprint((int)*c))
 			*c = '?';
@@ -115,9 +128,8 @@ void get_print_data(FTSENT *ent) {
 	if (ent->fts_info == FTS_SL || ent->fts_info == FTS_SLNONE) {
 		snprintf(path, sizeof path, "%s/%s", ent->fts_path, ent->fts_accpath);
 
-		if (readlink(path, data->sym_target, sizeof data->sym_target) == -1) {
+		if (readlink(path, data->sym_target, sizeof data->sym_target) == -1)
 			err(1, "readlink(%s)", path);
-		}
 	}
 }
 
@@ -130,7 +142,7 @@ void print_all(FTSENT *children) {
 
 	max_inode_len = max_block_len = max_nlink_len = max_user_len =
 	    max_group_len = max_size_len = max_major_len = max_minor_len =
-	        max_time_len = 0;
+	    max_time_len = 0;
 	block_total = size_total = 0;
 
 	for (cur = children; cur; cur = cur->fts_link) {
@@ -212,7 +224,7 @@ void print_all(FTSENT *children) {
 		printf("%s", DATA(cur)->filename);
 
 		if (opt.file_type_char) {
-			putchar(DATA(cur)->mode_char);
+			printf("%c", DATA(cur)->mode_char);
 		}
 
 		if (opt.long_mode) {
