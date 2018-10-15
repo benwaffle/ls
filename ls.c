@@ -166,8 +166,10 @@ void print_all(FTSENT *children)
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define DATA(ent) ((print_data*)ent->fts_pointer)
     unsigned max_inode_len, max_block_len, max_nlink_len, max_user_len, max_group_len, max_size_len, max_major_len, max_minor_len, max_time_len;
+    blkcnt_t block_total;
 
     max_inode_len = max_block_len = max_nlink_len = max_user_len = max_group_len = max_size_len = max_major_len = max_minor_len = max_time_len = 0;
+    block_total = 0;
 
     for (FTSENT *cur = children; cur; cur = cur->fts_link) {
         if (cur->fts_name[0] == '.' && opt.filter == NORMAL)
@@ -180,6 +182,8 @@ void print_all(FTSENT *children)
         max_group_len = MAX(max_group_len, strlen(DATA(cur)->group));
         max_time_len = MAX(max_time_len, strlen(DATA(cur)->time));
 
+        block_total += cur->fts_statp->st_blocks;
+
         if (S_ISCHR(cur->fts_statp->st_mode) || S_ISBLK(cur->fts_statp->st_mode)) {
             unsigned major_len = (unsigned)floor(log10(DATA(cur)->major)+1);
             unsigned minor_len = (unsigned)floor(log10(DATA(cur)->minor)+1);
@@ -189,6 +193,10 @@ void print_all(FTSENT *children)
         } else {
             max_size_len = MAX(max_size_len, strlen(DATA(cur)->size));
         }
+    }
+
+    if (opt.print_blocks) {
+        printf("Total %lld\n", block_total);
     }
 
     for (FTSENT *cur = children; cur; cur = cur->fts_link) {
@@ -357,8 +365,8 @@ int main(int argc, char *argv[])
         .print_inode = false,
         .print_blocks = false,
         .blocksize = 512,
-        .humanize = false,
         .blocks_kb = false,
+        .humanize = false,
         .hide_nonprintable = isatty(STDOUT_FILENO)
     };
 
