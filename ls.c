@@ -60,7 +60,7 @@ int ls(char *files[], int files_len) {
 
 			if (opt.go_into_dirs) {
 				FTSENT *children = fts_children(fts, 0);
-				if (!children)
+				if (!children && errno)
 					err(1, "fts_children");
 				for (FTSENT *ent = children; ent; ent = ent->fts_link)
 					get_print_data(ent);
