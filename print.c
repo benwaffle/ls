@@ -3,6 +3,7 @@
 
 #include <ctype.h>
 #include <err.h>
+#include <errno.h>
 #include <grp.h>
 #include <inttypes.h>
 #include <math.h>
@@ -155,7 +156,7 @@ void get_print_data(FTSENT *ent) {
 		snprintf(path, sizeof path, "%s/%s", ent->fts_path, ent->fts_accpath);
 
 		if (readlink(path, data->sym_target, sizeof data->sym_target-1) == -1)
-			err(1, "readlink(%s)", path);
+			fprintf(stderr, "readlink(%s): %s\n", path, strerror(errno));
 	}
 }
 
