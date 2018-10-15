@@ -313,6 +313,7 @@ int main_compare(const FTSENT **a, const FTSENT **b)
 void ls(char *files[], int files_len)
 {
     int fts_flags = FTS_PHYSICAL;
+    bool first = true;
     if (opt.filter == ALL)
         fts_flags |= FTS_SEEDOT;
 
@@ -328,6 +329,11 @@ void ls(char *files[], int files_len)
         }
 
         if (cur->fts_info == FTS_D) {
+            if (first)
+                first = false;
+            else
+                printf("\n");
+
             if (files_len > 1 || opt.recurse)
                 printf("%s:\n", cur->fts_path);
 
@@ -337,7 +343,6 @@ void ls(char *files[], int files_len)
 
             print_all(children);
 
-            printf("\n"); // TODO: don't print for last entry
             if (!opt.recurse)
                 fts_set(fts, cur, FTS_SKIP);
         }
