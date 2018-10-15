@@ -11,7 +11,7 @@
 
 options opt;
 
-void ls(char *[], int);
+int ls(char *[], int);
 int main(int, char **);
 void usage();
 
@@ -19,14 +19,15 @@ void usage();
  * Performs ls(1) on all of the supplied files using fts(3), while looking at
  * the global options struct
  */
-void ls(char *files[], int files_len) {
+int ls(char *files[], int files_len) {
 	FTS *fts;
 	FTSENT *cur;
-	int fts_flags;
+	int fts_flags, ret;
 	bool first;
 
 	fts_flags = FTS_PHYSICAL;
 	first = true;
+	ret = 0;
 
 	if (opt.filter == ALL)
 		fts_flags |= FTS_SEEDOT;
@@ -80,11 +81,10 @@ void ls(char *files[], int files_len) {
 
 			if (!opt.recurse)
 				fts_set(fts, cur, FTS_SKIP);
-		} else if (cur->fts_info == FTS_DC ||
-		           cur->fts_info == FTS_DNR ||
+		} else if (cur->fts_info == FTS_DNR ||
 		           cur->fts_info == FTS_ERR ||
-		           cur->fts_info == FTS_NS ||
-		           cur->fts_info == FTS_NSOK) {
+		           cur->fts_info == FTS_NS) {
+			ret = 1;
 			fprintf(stderr, "%s: %s: %s\n", getprogname(),
 			        cur->fts_accpath, strerror(cur->fts_errno));
 		}
@@ -93,6 +93,7 @@ void ls(char *files[], int files_len) {
 	if (errno != 0)
 		err(1, "fts_read");
 	fts_close(fts);
+	return ret;
 }
 
 void usage()
@@ -218,5 +219,5 @@ int main(int argc, char *argv[]) {
 	if (opt.blocks_kb)
 		opt.blocksize = 1024;
 
-	ls(files, files_len);
+	return ls(files, files_len);
 }
