@@ -16,6 +16,7 @@
 #include <grp.h>
 #include <time.h>
 #include <math.h>
+#include <sys/sysmacros.h>
 
 typedef enum {
     NORMAL,
@@ -103,7 +104,7 @@ void get_print_data(FTSENT *ent)
 
     strmode(st->st_mode, data->mode);
 
-    snprintf(data->nlink, sizeof data->nlink, "%d", st->st_nlink);
+    snprintf(data->nlink, sizeof data->nlink, "%ld", (long)st->st_nlink);
 
     if (!opt.numerical_ids && (user = getpwuid(st->st_uid)) != NULL)
         data->user = strdup(user->pw_name);
@@ -147,7 +148,9 @@ void get_print_data(FTSENT *ent)
     if (S_ISDIR(st->st_mode)) data->mode_char = '/';
     else if (S_ISLNK(st->st_mode)) data->mode_char = '@';
     else if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) data->mode_char = '*';
+#ifndef LINUX
     else if (S_ISWHT(st->st_mode)) data->mode_char = '%';
+#endif
     else if (S_ISSOCK(st->st_mode)) data->mode_char = '=';
     else if (S_ISFIFO(st->st_mode)) data->mode_char = '|';
 
